@@ -59,8 +59,8 @@ Scan::drawContours(int maxDrawDim, double pixPerMeter, smPoint * point1,
     if (contours.empty())
         return NULL;
 
-    double minx = MAXDOUBLE, miny = MAXDOUBLE;
-    double maxx = MINDOUBLE, maxy = MINDOUBLE;
+    double minx = DBL_MAX, miny = DBL_MAX;
+    double maxx = DBL_MIN, maxy = DBL_MIN;
     for (unsigned int i = 0; i < contours.size(); i++) {
         for (unsigned int p = 0; p < contours[i]->points.size(); p++) {
             minx = fmin(minx, contours[i]->points[p].x);

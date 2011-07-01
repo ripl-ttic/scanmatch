@@ -9,5 +9,8 @@ lcmtypes_build()
 
 include(cmake/ipp.cmake)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(OPENCV REQUIRED opencv)
+
 add_subdirectory(src/scanmatch)
 add_subdirectory(src/scan-matcher)

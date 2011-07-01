@@ -21,7 +21,12 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
+
+#ifdef __APPLE__
+#include <malloc/malloc.h>
+#else
 #include <malloc.h>
+#endif
 
 namespace scanmatch
 {

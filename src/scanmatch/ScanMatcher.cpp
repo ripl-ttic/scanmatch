@@ -1,6 +1,5 @@
 #include "ScanMatcher.hpp"
 #include <stdio.h>
-#include <values.h>
 #include <unistd.h>
 #include "RasterLookupTable.hpp"
 #include "Contour.hpp"
@@ -329,10 +328,10 @@ void
 ScanMatcher::computeBounds(double *minx, double *miny, double *maxx,
         double *maxy)
 {
-    *minx = MAXDOUBLE;
-    *maxx = -MAXDOUBLE;
-    *miny = MAXDOUBLE;
-    *maxy = -MAXDOUBLE;
+    *minx = DBL_MAX;
+    *maxx = -DBL_MAX;
+    *miny = DBL_MAX;
+    *maxy = -DBL_MAX;
 
     sm_tictoc("rebuild_bounds");
     // Compute bounds of the scans.

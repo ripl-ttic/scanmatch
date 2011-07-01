@@ -2,7 +2,9 @@ file(GLOB cpp_files *.cpp)
 file(GLOB hpp_files *.hpp)
 add_library(scanmatch SHARED ${cpp_files})
 
-target_link_libraries(scanmatch ${IPP_LIBS})
+include_directories(${OPENCV_INCLUDE_DIRS})
+
+target_link_libraries(scanmatch ${IPP_LIBS} ${OPENCV_LDFLAGS})
 
 # set the library API version.  Increment this every time the public API
 # changes.

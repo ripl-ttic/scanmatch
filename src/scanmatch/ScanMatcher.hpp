@@ -24,7 +24,7 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <pthread.h>
-#include <values.h>
+#include <float.h>
 
 namespace scanmatch
 {

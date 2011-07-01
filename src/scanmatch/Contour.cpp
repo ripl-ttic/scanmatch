@@ -5,7 +5,7 @@
 #include <queue>
 #include <string>
 #include <math.h>
-#include <values.h>
+#include <float.h>
 #include <assert.h>
 #include <opencv/cxcore.h>
 #include <opencv/cv.h>
@@ -317,7 +317,7 @@ ContourExtractor::findClosestPoint(std::vector<PointRecord> &pointrecs,
         return NULL;
 
     int bestvictim = -1;
-    double bestcost = MAXDOUBLE;
+    double bestcost = DBL_MAX;
 
     // how far a span was there in this contour between the last two points?
 
