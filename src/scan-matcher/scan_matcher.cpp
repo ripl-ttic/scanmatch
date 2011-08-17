@@ -79,6 +79,7 @@ process_laser(const sm_planar_lidar_t * msg, void * user  __attribute__((unused)
     if (numValidPoints < 30) {
         fprintf(stderr, "WARNING! NOT ENOUGH VALID POINTS! numValid=%d\n",
                 numValidPoints);
+        free(points);
         return;
     }
 
