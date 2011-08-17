@@ -28,7 +28,7 @@ ContourExtractor::ContourExtractor(sm_laser_type_t laser_type)
         searchRange = 10;
         minDistForDistRatio = .08;
         maxDistForSkippingDistRatio = .4;
-        simplifyContourThresh = 0;
+        simplifyContourThresh = .025;
         break;
 
     case SM_HOKUYO_URG:
@@ -249,47 +249,10 @@ ContourExtractor::findContours(smPoint * points, unsigned numValidPoints,
             }
 
             if (c->points.size() >= minPointsPerContour) {
-                //TODO: this should be a param
-                c->allPoints = c->points;
                 if (simplifyContourThresh > 0 && c->points.size() > 2) {
-                    //use cvApproxPoly to simplify the contour
-                    CvMemStorage* storage = cvCreateMemStorage(0);
-                    CvSeq* orig_seq = cvCreateSeq(CV_SEQ_KIND_CURVE | CV_32FC2,
-                            sizeof(CvContour), sizeof(CvPoint2D32f), storage);
-                    CvSeqWriter writer;
-                    cvStartAppendToSeq(orig_seq, &writer);
-                    for (unsigned i = 0; i < c->points.size(); i++) {
-                        CvPoint2D32f pt =
-                            { c->points[i].x, c->points[i].y };
-                        CV_WRITE_SEQ_ELEM(pt, writer);
-                    }
-                    cvEndWriteSeq(&writer);
-                    //tolerance of within 2.5cm seems reasonable
-                    CvSeq* simple_seq = cvApproxPoly(orig_seq, 0, NULL,
-                            CV_POLY_APPROX_DP, simplifyContourThresh);
-                    CvSeqReader reader;
-                    cvStartReadSeq(simple_seq, &reader, 0);
-                    c->points.resize(simple_seq->total);
-                    CvPoint2D32f pt;
-                    for (int i = 0; i < simple_seq->total; i++) {
-                        CV_READ_SEQ_ELEM(pt, reader);
-                        c->points[i].x = pt.x;
-                        c->points[i].y = pt.y;
-                    }
-                    //for some reason the last entry is sometimes a duplicate?!?
-                    for (unsigned i =0;i<c->points.size()-1;i++){
-                      if (sm_dist(&c->points.back(),&c->points[i])<1e-4)
-                      {
-                        //last one is a duplicate
-                        c->points.resize(c->points.size()-1);
+                  c->simplify(simplifyContourThresh);
                       }
-                    }
-                    cvReleaseMemStorage(&storage);
-		}
-		if (c->points.size()>1)
 		  contours.push_back(c);
-		else
-		  delete c;
             } else
                 delete c;
         }
@@ -363,3 +326,92 @@ ContourExtractor::findClosestPoint(std::vector<PointRecord> &pointrecs,
 
     return new Join(parent, bestvictim, bestcost);
 }
+
+
+
+// Copyright 2002, softSurfer (www.softsurfer.com)
+// This code may be freely used and modified for any purpose
+// providing that this copyright notice is included with it.
+// SoftSurfer makes no warranty for this code, and cannot be held
+// liable for any real or imagined damage resulting from its use.
+// Users of this code must verify correctness for their application.
+
+//  simplify():
+//    Input:  tol = approximation tolerance
+//      allPoints should contain the complete set of points
+//    Output:
+//      points will contain the simplified set of points
+
+void Contour::simplify(float tol)
+{
+  int n = points.size();
+  allPoints = points;
+
+  // STAGE 1.  Vertex Reduction within tolerance of prior vertex cluster
+  int m = 1;// first point always kept
+  int pv=0; //previously added ind
+  for (int i = 1; i < n - 1; i++) {
+    if (sm_dist(&points[i], &points[pv]) < tol)
+      continue;
+    points[m] = points[i];
+    pv = m++;
+  }
+  points[m++] = points[n - 1]; //make sure end is added
+  //m vertices in vertex reduced polyline
+  points.resize(m);
+
+  // STAGE 2.  Douglas-Peucker polyline simplification
+  vector<bool> mk(points.size(), false);
+  mk[0] = mk.back() = 1; // mark the first and last vertices
+  simplifyDP(tol, points, 0, points.size() - 1, mk);
+
+  // copy marked vertices to the output simplified polyline
+  m = 0;
+  for (int i = 0; i < points.size(); i++) {
+    if (mk[i])
+      points[m++] = points[i]; //m<=i;
+  }
+  //m vertices in simplified polyline
+  points.resize(m);
+
+}
+
+// simplifyDP():
+//  This is the Douglas-Peucker recursive simplification routine
+//  It just marks vertices that are part of the simplified polyline
+//  for approximating the polyline subchain v[j] to v[k].
+//    Input:  tol = approximation tolerance
+//            v[] = polyline array of vertex points
+//            j,k = indices for the subchain v[j] to v[k]
+//    Output: mk[] = array of markers matching vertex array v[]
+void Contour::simplifyDP(float tol, std::vector<smPoint> &v, int j, int k, std::vector<bool> &mk)
+{
+  if (k <= j + 1) // there is nothing to simplify
+    return;
+
+  // check for adequate approximation by segment S from v[j] to v[k]
+  int maxi = j; // index of vertex farthest from segment
+  float max_dist_to_seg = 0;
+  // test each vertex v[i] for max distance from segment v[j]-v[k]
+  for (int i = j + 1; i < k; i++) {
+    double dist_to_seg = sm_dist_to_segment(&v[i], &v[j], &v[k]);
+    if (dist_to_seg <= max_dist_to_seg)
+      continue;
+    else {
+      // v[i] is a new max vertex
+      maxi = i;
+      max_dist_to_seg = dist_to_seg;
+    }
+  }
+  if (max_dist_to_seg > tol) // error is worse than the tolerance
+  {
+    // split the polyline at the farthest vertex
+    mk[maxi] = true; // mark v[maxi] for the simplified polyline
+    // recursively simplify the two subpolylines at v[maxi]
+    simplifyDP(tol, v, j, maxi, mk); // polyline v[j] to v[maxi]
+    simplifyDP(tol, v, maxi, k, mk); // polyline v[maxi] to v[k]
+  }
+  // else the approximation is OK, so ignore intermediate vertices
+  return;
+}
+//===================================================================

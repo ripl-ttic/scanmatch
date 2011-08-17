@@ -107,6 +107,13 @@ public:
      */
     std::vector<smPoint> points;
     std::vector<smPoint> allPoints;
+    /**
+     * simplify the points that make up the contour
+     */
+    void simplify(float tol);
+private:
+  static void simplifyDP(float tol, std::vector<smPoint> &v, int j, int k, std::vector<bool> &mk);
+
 };
 
 class ContourExtractor

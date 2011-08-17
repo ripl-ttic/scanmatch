@@ -188,13 +188,13 @@ sm_sq(double v)
 }
 
 inline double
-sm_dist(smPoint * p1, smPoint * p2)
+sm_dist(const smPoint * p1, const smPoint * p2)
 {
     return sqrt(sm_sq(p1->x - p2->x) + sm_sq(p1->y - p2->y));
 }
 
 inline double
-sm_norm(smPoint * p)
+sm_norm(const smPoint * p)
 {
     return sqrt(sm_sq(p->x) + sm_sq(p->y));
 }
@@ -234,13 +234,13 @@ sm_normalize_vector(smPoint * v)
 }
 
 inline double
-sm_dot(smPoint * p1, smPoint * p2)
+sm_dot(const smPoint * p1, const smPoint * p2)
 {
     return p1->x * p2->x + p1->y * p2->y;
 }
 
 inline double
-sm_angle_between_points(smPoint * p1, smPoint * p2, smPoint * p3)
+sm_angle_between_points(const smPoint * p1, const smPoint * p2, const smPoint * p3)
 {
     smPoint v1 =
         { p2->x - p1->x, p2->y - p1->y };
@@ -322,7 +322,7 @@ sm_rotateCov2D(const double cov[9], double theta, double rCov[9])
 }
 
 inline double
-sm_dist_to_line(smPoint * pt, smPoint * v1, smPoint * v2)
+sm_dist_to_line(const smPoint * pt,const  smPoint * v1,const  smPoint * v2)
 { //compute distance to line that passes through these two points
     //expanded ugliness from symbolic matlab:
     //    a = v1 - v2;
@@ -335,7 +335,7 @@ sm_dist_to_line(smPoint * pt, smPoint * v1, smPoint * v2)
 }
 
 inline double
-sm_dist_to_segment(smPoint * pt, smPoint * v1, smPoint * v2, int * vertexNum)
+sm_dist_to_segment(const smPoint * pt, const smPoint * v1, const smPoint * v2, int * vertexNum=NULL)
 { //compute the distance to the line segment, or the closest endpoint if the point isn't inside
     double dot1 = (v2->x - v1->x) * (pt->x - v1->x) + (v2->y - v1->y) * (pt->y
             - v1->y);
@@ -344,15 +344,18 @@ sm_dist_to_segment(smPoint * pt, smPoint * v1, smPoint * v2, int * vertexNum)
     int insideSegment = dot1 > 0 && dot2 > 0;
     if (insideSegment) //we're inside the segment, so return the perpendicular dist
     {
+      if (vertexNum)
         *vertexNum = 0;
         return sm_dist_to_line(pt, v1, v2);
     } else {
         double dv1 = sm_dist(pt, v1);
         double dv2 = sm_dist(pt, v2);
         if (dv1 < dv2) {
+          if (vertexNum)
             *vertexNum = 1;
             return dv1;
         } else {
+          if (vertexNum)
             *vertexNum = 2;
             return dv2;
         }
@@ -361,7 +364,7 @@ sm_dist_to_segment(smPoint * pt, smPoint * v1, smPoint * v2, int * vertexNum)
 }
 
 inline void
-sm_transformPoints(ScanTransform *T, smPoint * points, unsigned numPoints,
+sm_transformPoints(const ScanTransform *T, const smPoint * points, unsigned numPoints,
         smPoint * ppoints)
 {
     double ct = cos(T->theta), st = sin(T->theta);
@@ -372,7 +375,7 @@ sm_transformPoints(ScanTransform *T, smPoint * points, unsigned numPoints,
 }
 
 inline int
-sm_projectRangesToPoints(float * ranges, int numPoints, double thetaStart,
+sm_projectRangesToPoints(const float * ranges, int numPoints, double thetaStart,
         double thetaStep, smPoint * points, double maxRange = 1e10,
         double validRangeStart = -1000, double validRangeEnd = 1000,
         double * aveValidRange = NULL, double * stddevValidRange = NULL)
@@ -409,7 +412,7 @@ sm_projectRangesToPoints(float * ranges, int numPoints, double thetaStart,
 
 inline int
 sm_projectRangesAndDecimate(int beamskip, float spatialDecimationThresh,
-        float * ranges, int numPoints, double thetaStart, double thetaStep,
+    const float * ranges, int numPoints, double thetaStart, double thetaStep,
         smPoint * points, double maxRange = 1e10, double validRangeStart =
                 -1000, double validRangeEnd = 1000)
 {
@@ -464,7 +467,7 @@ sm_get_utime(void)
 }
 
 static inline sm_laser_type_t
-sm_get_laser_type_from_name(char * laser_name)
+sm_get_laser_type_from_name(const char * laser_name)
 {
     if (strcmp(laser_name, "HOKUYO_UTM") == 0) {
         return SM_HOKUYO_UTM;
