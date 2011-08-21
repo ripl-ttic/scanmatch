@@ -542,9 +542,11 @@ static void scaleCovariance(const double cov[9], double scaledCov[9]){
       double evals_sq[9] =  { 0 };
       double evecs[9] ={ 0 };
       double evecsT[9] ={ 0 };
-      double sigma_scaled[9] ={ 0 };
+
+      memset(scaledCov,0,9*sizeof(double));
+
       CvMat cv_sigma = cvMat(3, 3, CV_64FC1, sigma);
-      CvMat cv_sigma_scaled = cvMat(3, 3, CV_64FC1, sigma_scaled);
+      CvMat cv_scaledCov = cvMat(3, 3, CV_64FC1, scaledCov);
       CvMat cv_evals = cvMat(3, 1, CV_64FC1, evals);
       CvMat cv_evals_sq = cvMat(3, 3, CV_64FC1, evals_sq);
       CvMat cv_evecs = cvMat(3, 3, CV_64FC1, evecs);
@@ -572,10 +574,9 @@ static void scaleCovariance(const double cov[9], double scaledCov[9]){
 
       cvTranspose(&cv_evecs, &cv_evecsT);
       cvMatMul(&cv_evecs,&cv_evals_sq,&cv_sigma);
-      cvMatMul(&cv_sigma,&cv_evecsT,&cv_sigma_scaled);
-      memcpy(bestResult.sigma, sigma_scaled, 9 * sizeof(double));
+      cvMatMul(&cv_sigma,&cv_evecsT,&cv_scaledCov);
 
-      cvEigenVV(&cv_sigma_scaled, &cv_evecs, &cv_evals);
+      cvEigenVV(&cv_scaledCov, &cv_evecs, &cv_evals);
       if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
           fprintf(stderr, "ERROR: scaled cov is not P.S.D!\n");
 }
@@ -816,7 +817,7 @@ RasterLookupTable::evaluate3D_multiRes(RasterLookupTable * rlt_high_res,
     cov[8] = fmax(cov[8], 1e-3); //often times the top 85% will all be the same theta
 
 #ifdef SCALE_COVARIANCE
-    scaleCovarianace(cov,bestResult.sigma);
+    scaleCovariance(cov,bestResult.sigma);
 #else
       memcpy(bestResult.sigma, cov, 9 * sizeof(double));
 #endif
@@ -982,7 +983,7 @@ RasterLookupTable::evaluate3D(const smPoint * points, const unsigned numPoints,
     cov[8] = fmax(cov[8], 1e-3); //often times the top 85% will all be the same theta
 
 #ifdef SCALE_COVARIANCE
-    scaleCovarianace(cov,bestResult.sigma);
+    scaleCovariance(cov,bestResult.sigma);
 #else
       memcpy(bestResult.sigma, cov, 9 * sizeof(double));
 #endif
