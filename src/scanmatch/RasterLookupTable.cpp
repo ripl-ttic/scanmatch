@@ -14,6 +14,7 @@
 #include <vector>
 #include <algorithm>
 
+
 #define DRAW_COST_SURFACE 0
 #if DRAW_COST_SURFACE
 //for debugging/visualization
@@ -21,6 +22,7 @@
 #include <GL/gl.h>
 #endif
 
+#define SCALE_COVARIANCE 1 //TODO: this should probably be a parameter and be done elsewhere
 #define VAR_COMP_THRESH .80
 
 using namespace std;
@@ -62,8 +64,8 @@ RasterLookupTable::RasterLookupTable(double x0i, double y0i, double x1i,
     if (width > 8192 || height > 8192)
         fprintf(stderr, "RasterLookupTable: Enormous dimensions: %dx%d\n",
                 width, height);
-    if (width <= 0 || height < 0) {
-        fprintf(stderr, "ERROR:width or height is less than 0\n");
+    if (width <= 0 || height <= 0) {
+        fprintf(stderr, "ERROR:width %d or height %d is less than 0\n",width,height);
         exit(1);
     }
 
@@ -531,6 +533,54 @@ score_entry_comp(const score_entry & i, const score_entry & j)
     return i.score > j.score;
 }
 
+
+static void scaleCovariance(const double cov[9], double scaledCov[9]){
+  //scale and square xy-covariance, since that seems to gives a better approximation of the uncertainty...
+      double sigma[9];
+      memcpy(sigma, cov, 9 * sizeof(double));
+      double evals[3] = { 0 };
+      double evals_sq[9] =  { 0 };
+      double evecs[9] ={ 0 };
+      double evecsT[9] ={ 0 };
+      double sigma_scaled[9] ={ 0 };
+      CvMat cv_sigma = cvMat(3, 3, CV_64FC1, sigma);
+      CvMat cv_sigma_scaled = cvMat(3, 3, CV_64FC1, sigma_scaled);
+      CvMat cv_evals = cvMat(3, 1, CV_64FC1, evals);
+      CvMat cv_evals_sq = cvMat(3, 3, CV_64FC1, evals_sq);
+      CvMat cv_evecs = cvMat(3, 3, CV_64FC1, evecs);
+      CvMat cv_evecsT = cvMat(3, 3, CV_64FC1, evecsT);
+      cvEigenVV(&cv_sigma, &cv_evecs, &cv_evals);
+      if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
+          fprintf(stderr, "ERROR: pre-scaled cov is not P.S.D!\n");
+
+      cvPow(&cv_evals, &cv_evals, 2); //square the eigan values
+      cvScale(&cv_evals, &cv_evals, 50); //multiply by 50
+
+      if (evals[0] > .015) {
+          fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
+                  evals[0]);
+          evals[0] *= 10; //estimate is total garbage in this direction
+      }
+      if (evals[1] > .015) {
+          fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
+                  evals[3]);
+          evals[1] *= 10; //estimate is total garbage in this direction
+      }
+      CvMat cv_diag;
+      cvGetDiag(&cv_evals_sq, &cv_diag);
+      cvCopy(&cv_evals, &cv_diag);
+
+      cvTranspose(&cv_evecs, &cv_evecsT);
+      cvMatMul(&cv_evecs,&cv_evals_sq,&cv_sigma);
+      cvMatMul(&cv_sigma,&cv_evecsT,&cv_sigma_scaled);
+      memcpy(bestResult.sigma, sigma_scaled, 9 * sizeof(double));
+
+      cvEigenVV(&cv_sigma_scaled, &cv_evecs, &cv_evals);
+      if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
+          fprintf(stderr, "ERROR: scaled cov is not P.S.D!\n");
+}
+
+
 /** Perform a brute-force search in 3DOFs. * */
 ScanTransform
 RasterLookupTable::evaluate3D_multiRes(RasterLookupTable * rlt_high_res,
@@ -765,54 +815,11 @@ RasterLookupTable::evaluate3D_multiRes(RasterLookupTable * rlt_high_res,
     sm_vector_sub_nd(K, u_outer, 9, cov);
     cov[8] = fmax(cov[8], 1e-3); //often times the top 85% will all be the same theta
 
-    //scale and square xy-covariance, since that seems to gives a better approximation of the uncertainty...
-    double sigma[9];
-    memcpy(sigma, cov, 9 * sizeof(double));
-    double evals[3] =
-        { 0 };
-    double evals_sq[9] =
-        { 0 };
-    double evecs[9] =
-        { 0 };
-    double evecsT[9] =
-        { 0 };
-    double sigma_scaled[9] =
-        { 0 };
-    CvMat cv_sigma = cvMat(3, 3, CV_64FC1, sigma);
-    CvMat cv_sigma_scaled = cvMat(3, 3, CV_64FC1, sigma_scaled);
-    CvMat cv_evals = cvMat(3, 1, CV_64FC1, evals);
-    CvMat cv_evals_sq = cvMat(3, 3, CV_64FC1, evals_sq);
-    CvMat cv_evecs = cvMat(3, 3, CV_64FC1, evecs);
-    CvMat cv_evecsT = cvMat(3, 3, CV_64FC1, evecsT);
-    cvEigenVV(&cv_sigma, &cv_evecs, &cv_evals);
-    if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
-        fprintf(stderr, "ERROR: pre-scaled cov is not P.S.D!\n");
-
-    cvPow(&cv_evals, &cv_evals, 2); //square the eigan values
-    cvScale(&cv_evals, &cv_evals, 50); //multiply by 50
-
-    if (evals[0] > .015) {
-        fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
-                evals[0]);
-        evals[0] *= 10; //estimate is total garbage in this direction
-    }
-    if (evals[1] > .015) {
-        fprintf(stderr, "Eigenvalue 2 is %f, discarding this direction\n",
-                evals[3]);
-        evals[1] *= 10; //estimate is total garbage in this direction
-    }
-    CvMat cv_diag;
-    cvGetDiag(&cv_evals_sq, &cv_diag);
-    cvCopy(&cv_evals, &cv_diag);
-
-    cvTranspose(&cv_evecs, &cv_evecsT);
-    cvMatMul(&cv_evecs,&cv_evals_sq,&cv_sigma);
-    cvMatMul(&cv_sigma,&cv_evecsT,&cv_sigma_scaled);
-    memcpy(bestResult.sigma, sigma_scaled, 9 * sizeof(double));
-
-    cvEigenVV(&cv_sigma_scaled, &cv_evecs, &cv_evals);
-    if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
-        fprintf(stderr, "ERROR: scaled cov is not P.S.D!\n");
+#ifdef SCALE_COVARIANCE
+    scaleCovarianace(cov,bestResult.sigma);
+#else
+      memcpy(bestResult.sigma, cov, 9 * sizeof(double));
+#endif
 
 #if DRAW_COST_SURFACE
     //draw score cloud with lcmgl
@@ -974,54 +981,12 @@ RasterLookupTable::evaluate3D(const smPoint * points, const unsigned numPoints,
     sm_vector_sub_nd(K, u_outer, 9, cov);
     cov[8] = fmax(cov[8], 1e-3); //often times the top 85% will all be the same theta
 
-    //scale and square xy-covariance, since that seems to gives a better approximation of the uncertainty...
-    double sigma[9];
-    memcpy(sigma, cov, 9 * sizeof(double));
-    double evals[3] =
-        { 0 };
-    double evals_sq[9] =
-        { 0 };
-    double evecs[9] =
-        { 0 };
-    double evecsT[9] =
-        { 0 };
-    double sigma_scaled[9] =
-        { 0 };
-    CvMat cv_sigma = cvMat(3, 3, CV_64FC1, sigma);
-    CvMat cv_sigma_scaled = cvMat(3, 3, CV_64FC1, sigma_scaled);
-    CvMat cv_evals = cvMat(3, 1, CV_64FC1, evals);
-    CvMat cv_evals_sq = cvMat(3, 3, CV_64FC1, evals_sq);
-    CvMat cv_evecs = cvMat(3, 3, CV_64FC1, evecs);
-    CvMat cv_evecsT = cvMat(3, 3, CV_64FC1, evecsT);
-    cvEigenVV(&cv_sigma, &cv_evecs, &cv_evals);
-    if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
-        fprintf(stderr, "ERROR: pre-scaled cov is not P.S.D!\n");
+#ifdef SCALE_COVARIANCE
+    scaleCovarianace(cov,bestResult.sigma);
+#else
+      memcpy(bestResult.sigma, cov, 9 * sizeof(double));
+#endif
 
-    cvPow(&cv_evals, &cv_evals, 2); //square the eigan values
-    cvScale(&cv_evals, &cv_evals, 50); //multiply by 50
-
-    if (evals[0] > .015) {
-        fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
-                evals[0]);
-        evals[0] *= 10; //estimate is total garbage in this direction
-    }
-    if (evals[1] > .015) {
-        fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
-                evals[3]);
-        evals[1] *= 10; //estimate is total garbage in this direction
-    }
-    CvMat cv_diag;
-    cvGetDiag(&cv_evals_sq, &cv_diag);
-    cvCopy(&cv_evals, &cv_diag);
-
-    cvTranspose(&cv_evecs, &cv_evecsT);
-    cvMatMul(&cv_evecs,&cv_evals_sq,&cv_sigma);
-    cvMatMul(&cv_sigma,&cv_evecsT,&cv_sigma_scaled);
-    memcpy(bestResult.sigma, sigma_scaled, 9 * sizeof(double));
-
-    cvEigenVV(&cv_sigma_scaled, &cv_evecs, &cv_evals);
-    if (evals[0] <= 0 || evals[1] <= 0 || evals[2] <= 0)
-        fprintf(stderr, "ERROR: scaled cov is not P.S.D!\n");
 
     sm_tictoc("compute_Variance");
 
