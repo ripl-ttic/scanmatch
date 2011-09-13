@@ -348,6 +348,11 @@ ScanMatcher::computeBounds(double *minx, double *miny, double *maxx,
                 *maxy = fmax(*maxy, p.y);
             }
         }
+        //make sure the scan origin is in the map
+        *minx = fmin(*minx, s->T.x);
+        *maxx = fmax(*maxx, s->T.x);
+        *miny = fmin(*miny, s->T.y);
+        *maxy = fmax(*maxy, s->T.y);
     }
     sm_tictoc("rebuild_bounds");
 
