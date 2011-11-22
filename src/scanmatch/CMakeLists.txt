@@ -14,8 +14,13 @@ pods_install_libraries(scanmatch)
 #make the headers public
 pods_install_headers(${hpp_files} DESTINATION scanmatch)
 
+if (IPP_FOUND)
+	set(IPP_LINK_FLAGS -L${IPP_PATH} ${IPP_LIBS})
+	message("IPP_LINK_FLAGS: ${IPP_LINK_FLAGS}")
+endif()
+
 pods_install_pkg_config_file(scanmatch
-    LIBS -lscanmatch -lpthread
+    LIBS -lscanmatch -lpthread ${IPP_LINK_FLAGS}
     CFLAGS 
     REQUIRES ${REQUIRED_PACKAGES}
     VERSION 0.0.1)
