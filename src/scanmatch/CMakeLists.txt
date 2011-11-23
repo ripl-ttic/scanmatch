@@ -20,7 +20,7 @@ if (IPP_FOUND)
 endif()
 
 pods_install_pkg_config_file(scanmatch
-    LIBS -lscanmatch -lpthread ${IPP_LINK_FLAGS}
+    LIBS -lscanmatch ${IPP_LINK_FLAGS} -lpthread
     CFLAGS 
     REQUIRES ${REQUIRED_PACKAGES}
     VERSION 0.0.1)
