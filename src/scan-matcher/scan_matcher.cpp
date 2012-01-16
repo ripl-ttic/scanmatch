@@ -310,7 +310,7 @@ main(int argc, char *argv[])
     app->laser_queue = new deque<sm_planar_lidar_t *> ();
 
     const char *optstring = "hl:o:drvm:R:B:D:M:p::n:";
-    char c;
+    int c;
     struct option long_opts[] =
         {
             { "help", no_argument, 0, 'h' },
