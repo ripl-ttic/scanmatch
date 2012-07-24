@@ -447,7 +447,7 @@ main(int argc, char *argv[])
 
     ScanTransform startPose;
     memset(&startPose, 0, sizeof(startPose));
-    startPose.theta = M_PI / 2; //set the scan matcher to start at pi/2... cuz it looks better
+    startPose.theta = 0; //set the scan matcher to start at 0 heading... cuz pi/2 would be rediculous
     app->sm->initSuccessiveMatchingParams(maxNumScans, initialSearchRangeXY,
             maxSearchRangeXY, initialSearchRangeTheta, maxSearchRangeTheta,
             matchingMode, addScanHitThresh,
