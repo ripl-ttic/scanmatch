@@ -565,7 +565,7 @@ static void scaleCovariance(const double cov[9], double scaledCov[9]){
       }
       if (evals[1] > .015) {
           fprintf(stderr, "Eigenvalue 1 is %f, discarding this direction\n",
-                  evals[3]);
+                  evals[1]);
           evals[1] *= 10; //estimate is total garbage in this direction
       }
       CvMat cv_diag;
