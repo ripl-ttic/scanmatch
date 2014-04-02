@@ -91,16 +91,14 @@ Scan::drawContours(int maxDrawDim, double pixPerMeter, smPoint * point1,
 
         //      printf("HLS = (%f,%f,%f) \t RGB = (%f,%f,%f)\n", hls[0], hls[1], hls[2], rgb[0] * 255, rgb[1] * 255, rgb[2] * 255);
         for (unsigned int p = 0; p < contours[i]->points.size() - 1; p++) {
-            CvPoint
-                    p0 =
-                        { (int) ((contours[i]->points[p].x - minx)
-                                * pixPerMeter),
-                                (int) ((contours[i]->points[p].y - miny)
-                                        * pixPerMeter) };
-            CvPoint p1 =
-                { (int) ((contours[i]->points[p + 1].x - minx) * pixPerMeter),
+            CvPoint p0 ((int) ((contours[i]->points[p].x - minx)
+                         * pixPerMeter),
+                  (int) ((contours[i]->points[p].y - miny)
+                         * pixPerMeter) );
+
+            CvPoint p1 ((int) ((contours[i]->points[p + 1].x - minx) * pixPerMeter),
                         (int) ((contours[i]->points[p + 1].y - miny)
-                                * pixPerMeter) };
+                               * pixPerMeter));
             cvLine(drawIm, p0, p1, color, 5);
             cvCircle(drawIm, p0, 10, color, -1);
             cvCircle(drawIm, p1, 10, color, -1);
@@ -111,25 +109,21 @@ Scan::drawContours(int maxDrawDim, double pixPerMeter, smPoint * point1,
     }
     //draw the original points
     for (unsigned int i = 0; i < numPoints; i += 3) {
-        CvPoint p =
-            { (int) ((ppoints[i].x - minx) * pixPerMeter), (int) ((ppoints[i].y
-                    - miny) * pixPerMeter) };
+        CvPoint p ((int) ((ppoints[i].x - minx) * pixPerMeter), (int) ((ppoints[i].y
+                                                                        - miny) * pixPerMeter));
         cvCircle(drawIm, p, 5, CV_RGB(255,0,0), -1);
     }
 
     if (point1 != NULL) {
-        CvPoint p1 =
-            { (int) ((point1->x - minx) * pixPerMeter), (int) ((point1->y
-                    - miny) * pixPerMeter) };
+        CvPoint p1 ( (int) ((point1->x - minx) * pixPerMeter), (int) ((point1->y
+                                                                       - miny) * pixPerMeter) );
         cvCircle(drawIm, p1, 5, CV_RGB(0,0,0), -1);
     }
     if (point1 != NULL && point2 != NULL) {
-        CvPoint2D32f p1 =
-            { ((point1->x - minx) * pixPerMeter), ((point1->y - miny)
-                    * pixPerMeter) };
-        CvPoint2D32f p2 =
-            { ((point2->x - minx) * pixPerMeter), ((point2->y - miny)
-                    * pixPerMeter) };
+        CvPoint2D32f p1 (((point1->x - minx) * pixPerMeter), ((point1->y - miny)
+                                                              * pixPerMeter));
+        CvPoint2D32f p2 (((point2->x - minx) * pixPerMeter), ((point2->y - miny)
+                                                              * pixPerMeter));
         sm_drawArrow(drawIm, p1, p2, arrowScalFactor, 2, CV_RGB(0,255,255));
     }
 

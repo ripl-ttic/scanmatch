@@ -98,16 +98,14 @@ sm_drawCov(CvArr * drawFrame, CvPoint center, double sigmaX, double sigmaXY,
         { cos(th), sin(th) };
     CvMat cv_xy = cvMat(1, 2, CV_64FC1, xy);
     cvMatMul(&cv_xy, &cv_prod, &cv_xy);
-    CvPoint p0 =
-        { center.x + scaleFactorXY * xy[0], center.y + scaleFactorXY * xy[1] };
+    CvPoint p0 ( center.x + scaleFactorXY * xy[0], center.y + scaleFactorXY * xy[1] );
     for (int i = 0; i < nSegments - 1; i++) {
         th += 2 * PI / nSegments;
         xy[0] = cos(th);
         xy[1] = sin(th);
         cvMatMul(&cv_xy, &cv_prod, &cv_xy);
-        CvPoint p1 =
-            { center.x + scaleFactorXY * xy[0], center.y + scaleFactorXY
-                    * xy[1] };
+        CvPoint p1 ( center.x + scaleFactorXY * xy[0], center.y + scaleFactorXY
+                     * xy[1] );
 
         CvScalar color;
         if (fabs(th) < scaleFactorT * sigmaT)
@@ -182,8 +180,7 @@ sm_drawLine_squareKernel(CvMat * im, CvPoint p1, CvPoint p2,
     cvGetRawData(im, &imDataP, &imStep);
 
     CvLineIterator iterator;
-    CvRect window_rect =
-        { 0, 0, kernel_size, kernel_size };
+    CvRect window_rect ( 0, 0, kernel_size, kernel_size );
     CvMat window;
     int count = cvInitLineIterator(im, p1, p2, &iterator, 8, 0);
     for (int i = 0; i < count; i++) {
@@ -219,8 +216,7 @@ sm_drawLine_lineKernel(CvMat * im, CvPoint p1, CvPoint p2,
 {
     CvMat cv_square_kern =
             cvMat(kernel_size, kernel_size, CV_8UC1, square_kern);
-    CvRect window_rect =
-        { 0, 0, kernel_size, kernel_size };
+    CvRect window_rect ( 0, 0, kernel_size, kernel_size );
     CvMat window;
     CvMat cv_diag_line_kernel;
     CvSize imSize = cvGetSize(im);
@@ -260,8 +256,7 @@ sm_drawLine_lineKernel(CvMat * im, CvPoint p1, CvPoint p2,
     int pointOffsetX, pointOffsetY;
     int stretchedKernSize;
     double strechFactor;
-    CvPoint d =
-        { p2.x - p1.x, p2.y - p1.y };
+    CvPoint d ( p2.x - p1.x, p2.y - p1.y );
     if (d.x == 0 && d.y == 0) {
         return;
     }
