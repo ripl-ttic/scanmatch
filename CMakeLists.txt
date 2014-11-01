@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.6.0)
 
 include(cmake/pods.cmake)
 
+set(CMAKE_CXX_FLAGS "-std=c++11")
+
 # automatically build LCM types.  This also defines a number of CMake
 # variables, see cmake/lcmtypes.cmake for details
 include(cmake/lcmtypes.cmake)
